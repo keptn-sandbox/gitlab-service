@@ -1,0 +1,20 @@
+{
+  "type": "sh.keptn.event.configuration.change",
+  "contenttype": "application/json",
+  "specversion": "0.2",
+  "source": "test-event",
+  "id": "${UUID}",
+  "data": {
+    "project": "sockshop",
+    "stage": "hardening",
+    "service": "carts",
+    "valuesCanary": {
+      "image": "docker.io/keptnexamples/carts:0.10.1"
+    },
+    "labels": {
+      "testid": "${TESTID}",
+      "buildnr": "build17",
+      "runby": "JohnDoe"
+    }
+  }
+}

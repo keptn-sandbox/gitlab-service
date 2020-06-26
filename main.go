@@ -15,7 +15,11 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
+const eventbroker = "EVENTBROKER"
+
 var keptnOptions = keptn.KeptnOpts{}
+
+var runlocal = (os.Getenv("env") == "runlocal")
 
 type envConfig struct {
 	// Port on which to listen for cloudevents
@@ -40,6 +44,18 @@ func processKeptnCloudEvent(ctx context.Context, event cloudevents.Event) error 
 
 	log.Printf("gotEvent(%s): %s - %s", event.Type(), myKeptn.KeptnContext, event.Context.GetID())
 
+	var shkeptncontext string
+	event.Context.ExtensionAs("shkeptncontext", &shkeptncontext)
+
+	// create a base Keptn Event
+	keptnEvent := baseKeptnEvent{
+		event:   event.Type(),
+		source:  event.Source(),
+		context: shkeptncontext,
+	}
+
+	logger := keptn.NewLogger(shkeptncontext, event.Context.GetID(), "gitlab-service")
+
 	if err != nil {
 		log.Printf("failed to parse incoming cloudevent: %v", err)
 		return err
@@ -49,16 +65,18 @@ func processKeptnCloudEvent(ctx context.Context, event cloudevents.Event) error 
 	// Lets test on each possible Event Type and call the respective handler function
 	// ********************************************
 	if event.Type() == keptn.ConfigurationChangeEventType {
-		log.Printf("Processing Configuration Change Event")
-
+		logger.Info("Processing Configuration Change Event")
 		configChangeEventData := &keptn.ConfigurationChangeEventData{}
 		err := event.DataAs(configChangeEventData)
 		if err != nil {
 			log.Printf("Got Data Error: %s", err.Error())
 			return err
 		}
-
-		return HandleConfigurationChangeEvent(myKeptn, event, configChangeEventData)
+		keptnEvent.project = configChangeEventData.Project
+		keptnEvent.stage = configChangeEventData.Stage
+		keptnEvent.service = configChangeEventData.Service
+		keptnEvent.labels = configChangeEventData.Labels
+		return HandleConfigurationChangeEvent(myKeptn, keptnEvent, event, configChangeEventData, logger)
 	} else if event.Type() == keptn.DeploymentFinishedEventType {
 		log.Printf("Processing Deployment Finished Event")
 
@@ -68,8 +86,12 @@ func processKeptnCloudEvent(ctx context.Context, event cloudevents.Event) error 
 			log.Printf("Got Data Error: %s", err.Error())
 			return err
 		}
+		keptnEvent.project = deployFinishEventData.Project
+		keptnEvent.stage = deployFinishEventData.Stage
+		keptnEvent.service = deployFinishEventData.Service
+		keptnEvent.labels = deployFinishEventData.Labels
 
-		return HandleDeploymentFinishedEvent(myKeptn, event, deployFinishEventData)
+		return HandleDeploymentFinishedEvent(myKeptn, keptnEvent, event, deployFinishEventData, logger)
 	} else if event.Type() == keptn.TestsFinishedEventType {
 		log.Printf("Processing Test Finished Event")
 
@@ -79,8 +101,11 @@ func processKeptnCloudEvent(ctx context.Context, event cloudevents.Event) error 
 			log.Printf("Got Data Error: %s", err.Error())
 			return err
 		}
-
-		return HandleTestsFinishedEvent(myKeptn, event, testsFinishedEventData)
+		keptnEvent.project = testsFinishedEventData.Project
+		keptnEvent.stage = testsFinishedEventData.Stage
+		keptnEvent.service = testsFinishedEventData.Service
+		keptnEvent.labels = testsFinishedEventData.Labels
+		return HandleTestsFinishedEvent(myKeptn, keptnEvent, event, testsFinishedEventData, logger)
 	} else if event.Type() == keptn.StartEvaluationEventType {
 		log.Printf("Processing Start Evaluation Event")
 
@@ -90,8 +115,11 @@ func processKeptnCloudEvent(ctx context.Context, event cloudevents.Event) error 
 			log.Printf("Got Data Error: %s", err.Error())
 			return err
 		}
-
-		return HandleStartEvaluationEvent(myKeptn, event, startEvaluationEventData)
+		keptnEvent.project = startEvaluationEventData.Project
+		keptnEvent.stage = startEvaluationEventData.Stage
+		keptnEvent.service = startEvaluationEventData.Service
+		keptnEvent.labels = startEvaluationEventData.Labels
+		return HandleStartEvaluationEvent(myKeptn, keptnEvent, event, startEvaluationEventData, logger)
 	} else if event.Type() == keptn.EvaluationDoneEventType {
 		log.Printf("Processing Evaluation Done Event")
 
@@ -137,6 +165,14 @@ func main() {
 		log.Fatalf("Failed to process env var: %s", err)
 	}
 
+	if runlocal {
+		log.Println("env=runlocal: Running with local filesystem to fetch resources")
+		log.Println("Also setting the env variable TESTTOKEN for testing purposes")
+
+		// set some test env variables
+		os.Setenv("TESTTOKEN", "MYTESTTOKENVALUE")
+	}
+
 	os.Exit(_main(os.Args[1:], env))
 }
 
@@ -161,7 +197,7 @@ func _main(args []string, env envConfig) int {
 		cloudeventshttp.WithPath(env.Path),
 	)
 
-	log.Println("Starting keptn-service-template-go...")
+	log.Println("Starting gitlab-service...")
 	log.Printf("    on Port = %d; Path=%s", env.Port, env.Path)
 
 	if err != nil {

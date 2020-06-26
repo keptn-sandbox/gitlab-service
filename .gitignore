@@ -5,6 +5,10 @@
 *.so
 *.dylib
 
+# Test Services
+deploy/_*
+gitlab/_*
+
 # Test binary, build with `go test -c`
 *.test
 
@@ -16,7 +20,7 @@ vendor/*
 
 # binaries (created by go build on Linux/OSX)
 main
-keptn-service-template-go
+gitlab-service
 
 # IDE specific folders
 .vscode
