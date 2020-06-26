@@ -56,7 +56,7 @@ Content-Type: application/cloudevents+json
       "project":"sockshop",
       "result":"fail",
       "service":"carts",
-      "stage":"dev",
+      "stage":"hardening",
       "teststrategy":"performance",
       "labels": {
         "testid": "12345",

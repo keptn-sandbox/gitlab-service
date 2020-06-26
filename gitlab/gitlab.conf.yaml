@@ -1,0 +1,34 @@
+---
+spec_version: '0.1.0'
+gitlabinstance:
+  - name: gitlab.com
+    url: $ENV.GITLAB_URL
+    token: $ENV.GITLAB_TOKEN
+pipelines:
+  - name: MyGitLabPipeline
+    instance: gitlab.com
+    projectid: 19092773
+    ref: master
+    variables:
+      Message: My message from Keptn Project $PROJECT-$STAGE-$SERVICE
+      WaitTime: 2
+      Result: SUCCESS
+  - name: MyGitLabPipelineWithFailure
+    instance: gitlab.com
+    projectid: 19092773
+    ref: error
+    variables:
+      Message: My message from Keptn Project $PROJECT-$STAGE-$SERVICE
+      WaitTime: 2
+      Result: FAILURE
+events:
+  - event: configuration.change
+    action: MyGitLabPipeline 
+    timeout: 60
+    onsuccess:
+      event: deployment.finished
+      deploymentURIPublic: http://yourdeployedapp.yourdomain
+      result: pass
+    onfailure:
+      event: deployment.finished
+      result: failed
