@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: gitlab-service
-          image: checkelmann/gitlab-service:latest # Todo: Replace this with your image name
+          image: localhost:5000/gitlab-service:latest # Todo: Replace this with your image name
           ports:
             - containerPort: 8080
           env:
@@ -28,7 +28,7 @@ spec:
             - name: GITLAB_URL
               value: gitlab.com
             - name: GITLAB_TOKEN
-              value: YOURGITLABAPITOKEN              
+              value: YOURGITLABTOKEN              
         - name: distributor
           image: keptn/distributor:0.7.1
           livenessProbe:

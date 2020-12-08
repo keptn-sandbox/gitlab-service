@@ -2,7 +2,7 @@ apiVersion: skaffold/v1beta13
 kind: Config
 build:
   artifacts:
-    - image: checkelmann/gitlab-service # Todo: Replace this with your image name
+    - image: localhost:5000/gitlab-service # Todo: Replace this with your image name
       docker:
         dockerfile: Dockerfile
         buildArgs:
@@ -10,4 +10,4 @@ build:
 deploy:
   kubectl:
     manifests:
-      - deploy/_service.yaml
+      - deploy/dev-service.yaml
