@@ -1,0 +1,72 @@
+---
+# Deployment of our gitlab-service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-service
+  namespace: keptn
+spec:
+  selector:
+    matchLabels:
+      run: gitlab-service
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: gitlab-service
+    spec:
+      containers:
+        - name: gitlab-service
+          image: localhost:5000/gitlab-service:latest # Todo: Replace this with your image name
+          ports:
+            - containerPort: 8080
+          env:
+            - name: EVENTBROKER
+              value: 'http://event-broker/keptn'
+            - name: CONFIGURATION_SERVICE
+              value: 'http://configuration-service:8080'
+            - name: GITLAB_URL
+              value: gitlab.com
+            - name: GITLAB_TOKEN
+              value: YOURGITLABTOKEN              
+        - name: distributor
+          image: keptn/distributor:0.7.1
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 10999
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          env:
+            - name: PUBSUB_URL
+              value: 'nats://keptn-nats-cluster'
+            - name: PUBSUB_TOPIC
+              value: 'sh.keptn.>'
+            - name: PUBSUB_RECIPIENT
+              value: '127.0.0.1'
+      serviceAccountName: keptn-default
+---
+# Expose gitlab-service via Port 8080 within the cluster
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab-service
+  namespace: keptn
+  labels:
+    run: gitlab-service
+spec:
+  ports:
+    - port: 8080
+      protocol: TCP
+  selector:
+    run: gitlab-service
